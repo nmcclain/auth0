@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/auth0.v2/internal/client"
+	"github.com/nmcclain/auth0/internal/client"
 )
 
 // Management is an Auth0 management client used to interact with the Auth0
@@ -224,6 +224,53 @@ func (m *Management) request(method, uri string, v interface{}) error {
 	}
 
 	return nil
+}
+
+func (m *Management) requestMultiResponse(method, uri string, v interface{}) ([]interface{}, error) {
+	var vResponse []interface{}
+	var payload bytes.Buffer
+	if v != nil {
+		err := json.NewEncoder(&payload).Encode(v)
+		if err != nil {
+			return vResponse, err
+		}
+	}
+
+	req, err := http.NewRequest(method, uri, &payload)
+	if err != nil {
+		return vResponse, err
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	ctx, cancel := context.WithTimeout(m.ctx, m.timeout)
+	defer cancel()
+
+	if m.http == nil {
+		m.http = http.DefaultClient
+	}
+
+	res, err := m.http.Do(req.WithContext(ctx))
+	if err != nil {
+		select {
+		case <-ctx.Done():
+			return vResponse, ctx.Err()
+		default:
+			return vResponse, err
+		}
+	}
+
+	if res.StatusCode < http.StatusOK || res.StatusCode >= http.StatusBadRequest {
+		return vResponse, newError(res.Body)
+	}
+
+	if res.StatusCode != http.StatusNoContent {
+		err := json.NewDecoder(res.Body).Decode(vResponse)
+		if err != nil {
+			return vResponse, err
+		}
+		return vResponse, res.Body.Close()
+	}
+	return vResponse, nil
 }
 
 func (m *Management) get(uri string, v interface{}) error {

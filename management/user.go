@@ -85,6 +85,13 @@ type User struct {
 	Blocked *bool `json:"blocked,omitempty"`
 }
 
+type IdentityLink struct {
+	ConnectionID *string `json:"connection_id,omitempty"` // OPTIONAL
+	UserID       *string `json:"user_id,omitempty"`
+	Provider     *string `json:"provider,omitempty"`
+	LinkWith     *string `json:"link_with,omitempty"`
+}
+
 func (u *User) String() string {
 	return Stringify(u)
 }
@@ -237,4 +244,10 @@ func (um *UserManager) RemovePermissions(id string, permissions ...*Permission) 
 	p := make(map[string][]*Permission)
 	p["permissions"] = permissions
 	return um.m.request("DELETE", um.m.uri("users", id, "permissions"), &p)
+}
+
+// Link a user account.
+// See: https://auth0.com/docs/api/management/v2#!/Users/post_identities
+func (um *UserManager) LinkUsers(id string, il *IdentityLink) ([]interface{}, error) {
+	return um.m.requestMultiResponse("POST", um.m.uri("users", id, "identities"), &il)
 }
