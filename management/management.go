@@ -228,6 +228,7 @@ func (m *Management) request(method, uri string, v interface{}) error {
 
 func (m *Management) requestMultiResponse(method, uri string, v interface{}) ([]interface{}, error) {
 	var vResponse []interface{}
+
 	var payload bytes.Buffer
 	if v != nil {
 		err := json.NewEncoder(&payload).Encode(v)
@@ -264,7 +265,7 @@ func (m *Management) requestMultiResponse(method, uri string, v interface{}) ([]
 	}
 
 	if res.StatusCode != http.StatusNoContent {
-		err := json.NewDecoder(res.Body).Decode(vResponse)
+		err := json.NewDecoder(res.Body).Decode(&vResponse)
 		if err != nil {
 			return vResponse, err
 		}
